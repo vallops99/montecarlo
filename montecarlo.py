@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 from exceptions import (
     CriteriaError, FunctionReturnShapeError, FunctionReturnTypeError, InitializedTypeError, NotCallableException,
@@ -270,54 +269,3 @@ class Montecarlo():
             'result': random_values_y.sum() / n_samples * (highest - lowest)
         }
 
-    @staticmethod
-    def plot(simulation):
-        """
-        Static method that plot a simulation (based on the dictionary that our
-        Montecarlo class creates).
-    
-        Hit or Miss properties:
-        - `type`, type of simulation, `hitormiss` in this case;
-        - `random_values_x`, np.ndarray of X axis values;
-        - `random_values_y`, np.ndarray of Y axis values;
-        - `hit_values_x`, np.ndarray of hits of X axis;
-        - `hit_values_y`, np.ndarray of hits of Y axis;
-        - `miss_values_x`, np.ndarray of miss of X axis;
-        - `miss_values_y`, np.ndarray of miss of Y axis;
-        - `result`, percentage of success;
-        
-        Average properties:
-        - `type`, type of simulation, `average` in this case;
-        - `random_values_x`, np.ndarray of X axis values;
-        - `random_values_y`, np.ndarray of Y axis values;
-        - `result`, percentage of success;
-        """
-        plt.figure(figsize=(20, 5))
-
-        result = simulation['result']
-        plt.title(f'Average Montecarlo, result: {result}')
-
-        plt.scatter(
-            simulation['random_values_x'],
-            simulation['random_values_y'],
-            marker="*",
-            label="My function"
-        )
-
-        if simulation['type'] == 'hitormiss':
-            plt.title(f'Hit or Miss Montecarlo, result: {result}')
-            plt.scatter(
-                simulation['miss_values_x'],
-                simulation['miss_values_y'],
-                marker="*",
-                label="Miss points"
-            )
-            plt.scatter(
-                simulation['hit_values_x'],
-                simulation['hit_values_y'],
-                marker="*",
-                label='Hit points'
-            )
-
-        plt.legend()
-        plt.show()
