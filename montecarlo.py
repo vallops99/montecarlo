@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 from exceptions import (
     CriteriaError, FunctionReturnShapeError, FunctionReturnTypeError, InitializedTypeError, NotCallableException,
@@ -68,7 +69,7 @@ class Montecarlo():
         # a key in criteria_values map
         self.criteria = criteria
 
-    def _func_to_analyze():
+    def _func_to_analyze(self):
         """Private func_to_analyze mocked to `pass`."""
         pass
 
@@ -269,3 +270,34 @@ class Montecarlo():
             'result': random_values_y.sum() / n_samples * (highest - lowest)
         }
 
+    @staticmethod
+    def plot(simulation):
+        plt.figure(figsize=(20, 5))
+
+        result = simulation['result']
+        plt.title(f'Average Montecarlo, result: {result}')
+
+        plt.scatter(
+            simulation['random_values_x'],
+            simulation['random_values_y'],
+            marker="*",
+            label="My function"
+        )
+
+        if simulation['type'] == 'hitormiss':
+            plt.title(f'Hit or Miss Montecarlo, result: {result}')
+            plt.scatter(
+                simulation['miss_values_x'],
+                simulation['miss_values_y'],
+                marker="*",
+                label="Miss points"
+            )
+            plt.scatter(
+                simulation['hit_values_x'],
+                simulation['hit_values_y'],
+                marker="*",
+                label='Hit points'
+            )
+
+        plt.legend()
+        plt.show()
