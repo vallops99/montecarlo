@@ -1,17 +1,8 @@
-import os
+import subprocess
 
 def run():
     """
-    Run all unittests. Equivalent to run:
-    `pytest --cov --cov-report html --cov-report term-missing
-    --cov-fail-under 95`.
+    Run all unittests. Equivalent to run: `tox`.
+    Tox will run tests for all different Python versions.
     """
-    os.system(
-        'pytest \
-        --cov \
-        --cov-report html \
-        --cov-report term-missing \
-        --cov-fail-under 95 \
-        --capture=tee-sys \
-        --show-capture=all'
-    )
+    subprocess.run('tox')
