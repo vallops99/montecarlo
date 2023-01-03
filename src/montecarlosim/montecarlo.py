@@ -1,10 +1,17 @@
+from enum import Enum
+from typing import Tuple
+from collections.abc import Callable
+
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.markers import MarkerStyle
 
-from exceptions import (
-    CriteriaError, FunctionReturnShapeError, FunctionReturnTypeError, InitializedTypeError, NotCallableException,
-    NotImplementedFunctionError, NotInitializedError, NotRunningFunctionError
+from .exceptions import (
+    CriteriaError, FunctionReturnShapeError, FunctionReturnTypeError,
+    InitializedTypeError, NotCallableException, NotImplementedFunctionError,
+    NotInitializedError, NotRunningFunctionError, PlotMissingSimulation
 )
+
 
 class Montecarlo():
     """
@@ -16,65 +23,67 @@ class Montecarlo():
         - `criteria`, (hit or miss only) it indicates how hit/miss values must be read,
             one of: minor, minor-equal, equal, major-equal, major.
     """
+
     # Flag that let us understand if the Montecarlo's instance in use
     # has been initialized correctly.
     _initialized = False
-    # Criteria is used to know how to compare two np.ndarray.
-    # To have a visual context of criteria usefulness, draw a
-    # gaussian function in upper-right quadrant with min_y=0 and max_y=3,
-    # when criteria is:
-    # minor, hit values are inside the bell, so y < 3
-    #   (x is change dynamically based on bell shape);
-    # equal, hit values are exactly one of the point of the function;
-    # major, hit value are outside the bell, so y > 0
-    #   (x is change dynamically based on bell shape).
-    # Others can be figured out based on these principles.
-    _criteria = 'minor'
- 
-    # Criteria values is a map of criteria: function pairs.
-    _criteria_values = {
-        'minor': {
-            'function': lambda x, y: x < y,
-            'reverse': lambda x, y: x >= y,
-        },
-        'minor-equal': {
-            'function': lambda x, y: x <= y,
-            'reverse': lambda x, y: x > y
-        },
-        'equal': {
-            'function': lambda x, y: x == y,
-            'reverse': lambda x, y: x != y
-        },
-        'not-equal': {
-            'function': lambda x, y: x != y,
-            'reverse': lambda x, y: x == y
-        },
-        'major-equal': {
-            'function': lambda x, y: x >= y,
-            'reverse': lambda x, y: x < y
-        },
-        'major': {
-            'function': lambda x, y: x > y,
-            'reverse': lambda x, y: x <= y
-        }
-    }
+    _criteria = lambda x, y: (np.full_like(x, True), np.full_like(y, False))
+
+    class CriteriaValue:
+        """
+        Singleton class that describes how to use criteria.
+
+        It's composed by static method, each of whom accept a `np.ndarray` and
+        return a tuple of `np.ndarray`.
+        """
+        class Criteria(Enum):
+            """Enumeration of the possible CriteriaValues method."""
+            MINOR = 'minor'
+            MINOR_EQUAL = 'minor_equal'
+            EQUAL = 'equal'
+            NOT_EQUAL = 'not_equal'
+            MAJOR_EQUAL = 'major_equal'
+            MAJOR = 'major'
+
+
+        @staticmethod
+        def minor(x, y):
+            return (x < y, x >= y)
+
+        @staticmethod
+        def minor_equal(x, y):
+            return (x <= y, x > y)
+
+        @staticmethod        
+        def equal(x, y):
+            return (x == y, x != y)
+
+        @staticmethod
+        def not_equal(x ,y):
+            return (x != y, x == y)
+
+        @staticmethod
+        def major_equal(x, y):
+            return (x >= y, x < y)
+
+        @staticmethod
+        def major(x, y):
+            return (x > y, x <= y)
+
 
     # Default criteria is 'minor' as is the most common config.
-    def __init__(self, func_to_analyze, criteria='minor'):
+    def __init__(self, func_to_analyze: Callable[[np.ndarray], np.ndarray],
+        criteria: str = CriteriaValue.Criteria.MINOR.value):
         # The function to analyze is assigned to func_to_analyze property.
         # This property has a setter method that evaluate its usability.
         self.func_to_analyze = func_to_analyze
         self.is_initialized = True
-        # Criteria has a setter property that checks if the value matches
-        # a key in criteria_values map
+        # Criteria has a setter property that checks if the value matches a key
+        # in criteria_values map
         self.criteria = criteria
 
-    def _func_to_analyze(self):
-        """Private func_to_analyze mocked to `pass`."""
-        pass
-
     @property
-    def is_initialized(self):
+    def is_initialized(self) -> bool:
         """
         Initialized property indicates if a class of the instance is in use
         and if it has been initialized correctly.
@@ -88,26 +97,40 @@ class Montecarlo():
         self._initialized = value
 
     @property
-    def criteria(self):
+    def criteria(
+        self) -> Callable[[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]:
+        """
+        Criteria is used to know how to compare two np.ndarray (Xs and Ys) and understand
+        which are HIT and which are MISS points, the property stores the
+        function to be used (checkout class `CriteriaValues`).
+
+        To have a visual context of criteria usefulness, draw a
+        gaussian function with min (0, 0) and max (3, 3),
+        when criteria is:
+        minor, hit values are inside the bell, so y < 3 and x is
+        dynamic but for sure < 6.
+        major, hit value are outside the bell, so y > 0 and x is dynamic
+        but for sure > 3 where y <= 3 (not for all y).
+        Others can be figured out based on these principles.
+        """
         return self._criteria
-    
+
     @criteria.setter
-    def criteria(self, value):
-        if not value in self.criteria_values:
-            raise CriteriaError(value, self.criteria_values)
-        self._criteria = value
+    def criteria(self, value: str = CriteriaValue.Criteria.MINOR.value):
+        print(value)
+        print(getattr(self.CriteriaValue, value, None))
+        if not getattr(self.CriteriaValue, value, None):
+            raise CriteriaError(value, self.CriteriaValue.Criteria)
+        self._criteria = getattr(self.CriteriaValue, value)
 
     @property
-    def criteria_values(self):
-        return self._criteria_values
-
-    @property
-    def func_to_analyze(self):
+    def func_to_analyze(self) -> Callable[[np.ndarray], np.ndarray]:
         """
         Function to be analyzed.
 
-        The function must accept a numpy array parameter that represents an
-        axis values and return its opposite axis values.
+        The function must accept a `np.ndarray` parameter that represents an
+        axis values and return and `np.ndarray` representing the opposite
+        axis values.
         """
         return self._func_to_analyze
 
@@ -120,7 +143,10 @@ class Montecarlo():
     # Function must: be callable, accept np.ndarray, return np.ndarray and
     # the shape of accepted array and returned array must be the same
     def _test_function(self, func):
-        """Test the function before using it in order to handle exceptions."""
+        """
+        Method that tests a function correctness, throws
+        exceptions if not.
+        """
         random_array_x = self._create_random_values(0, 1, 10)
 
         if not func:
@@ -135,14 +161,19 @@ class Montecarlo():
             if not isinstance(random_array_y, np.ndarray):
                 raise FunctionReturnTypeError(type(random_array_y))
             if len(random_array_x) != len(random_array_y):
-                raise FunctionReturnShapeError()
+                raise FunctionReturnShapeError(
+                    len(random_array_x),
+                    len(random_array_y)
+                )
+        except (FunctionReturnTypeError, FunctionReturnShapeError) as error:
+            raise error
         except Exception as error:
             raise NotRunningFunctionError(error)
 
     # Create random values from uniform probability distribution.
     # Low and high are 0 and 1, the result is multiplied by 
     # (highest - lowest) + lowest in order to have a range [lowest, highest]
-    def _create_random_values(self, lowest, highest, n_samples):
+    def _create_random_values(self, lowest, highest, n_samples) -> np.ndarray:
         """
         Create n_samples random values of range [lowest, highest]
         from a uniform probability distribution.
@@ -151,7 +182,8 @@ class Montecarlo():
 
     # Get the random values (X axis) and retrieve the relative Y axis value
     # by feeding the function with our X axis ones.
-    def _create_function_values(self, lowest, highest, n_samples):
+    def _create_function_values(self,
+        lowest, highest, n_samples) -> Tuple[np.ndarray, np.ndarray]:
         """
         Create random X axis values that will be used to create relatives Y
         axis values with the provided function.
@@ -173,7 +205,7 @@ class Montecarlo():
     # f_max * (highest - lowest) * len(hit_values_x) / n_samples
     # Checkout the criteria_values to understand how hit and miss values
     # are calculated.
-    def hit_or_miss(self, lowest, highest, n_samples):
+    def hit_or_miss(self, lowest, highest, n_samples) -> dict:
         """
         Hit or Miss Montecarlo methods.
 
@@ -198,15 +230,8 @@ class Montecarlo():
         possibile_hit_values_y = np.random.uniform(0, 1, n_samples) * f_max
 
         # Get a np.ndarray of true/false value that will filter our values
-        # for HIT points. Filter will be based on our criteria.
-        hit_conditions = self.criteria_values[self.criteria]['function'](
-            possibile_hit_values_y,
-            random_values_y
-        )
-
-        # Get a np.ndarray of true/false value that will filter our values
-        # for MISS points. Filter will be based on reverse of our criteria.
-        miss_conditions = self.criteria_values[self.criteria]['reverse'](
+        # for HIT points and MISS points. Filter will be based on our criteria.
+        hit_conditions, miss_conditions = self.criteria(
             possibile_hit_values_y,
             random_values_y
         )
@@ -243,7 +268,8 @@ class Montecarlo():
 
     # Average Montecarlo method, we basically apply the formula on
     # random X/Y values.
-    def average(self, lowest, highest, n_samples):
+    def average(self,
+        lowest: int|float, highest: int|float, n_samples: int) -> dict:
         """
         Average Montecarlo methods.
 
@@ -271,7 +297,17 @@ class Montecarlo():
         }
 
     @staticmethod
-    def plot(simulation):
+    def plot(simulation: dict, test: bool = False):
+        """
+        Plot a simulation.
+
+        Parameters:
+        - `simulation`, dictionary returned after running a simulation;
+        - `test`, don't show the plot (OPTIONAL)
+        """
+        if not simulation:
+            raise PlotMissingSimulation()
+
         plt.figure(figsize=(20, 5))
 
         result = simulation['result']
@@ -280,7 +316,7 @@ class Montecarlo():
         plt.scatter(
             simulation['random_values_x'],
             simulation['random_values_y'],
-            marker="*",
+            marker=MarkerStyle('*'),
             label="My function"
         )
 
@@ -289,15 +325,16 @@ class Montecarlo():
             plt.scatter(
                 simulation['miss_values_x'],
                 simulation['miss_values_y'],
-                marker="*",
+                marker=MarkerStyle('.'),
                 label="Miss points"
             )
             plt.scatter(
                 simulation['hit_values_x'],
                 simulation['hit_values_y'],
-                marker="*",
+                marker=MarkerStyle(','),
                 label='Hit points'
             )
 
         plt.legend()
-        plt.show()
+        if not test:
+            plt.show()
