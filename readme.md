@@ -3,12 +3,41 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Build](https://img.shields.io/badge/Build-Passing-green.svg)]()
 
-## Installation
-`pip install montecarlosim`
-
 ## Requirements
 Python 3.10.0+
 Currently working to introduce support to old version.
+
+## Installation
+`pip install montecarlosim`
+
+## How to use it
+Import the Montecarlo class, create an instance of it by passing a function that accepts a one-dimensional numpy array and return a numpy array with the same shape (you can see them as passing the X axis points and returning the relative Y axis points).<br>
+If you don't have a function to use, but you want to test the library, you can use a gaussian function inside the `functions.py` file.<br>
+With the newly created instance, call one of the Montecarlo simulation methods (`hit_or_miss` or `average`) and pass them: min value of X axis, max value of Y axis and number of samples.
+This method will return the results (dictionary), hit_or_miss dict contains hit points and miss points also.<br/>
+If you want to graphically see your results, you can use the `plot` static method of Montecarlo's class by passing it the reuslts dict of every simulation method.<br>
+Example:<br/>
+```python
+from montecarlosim.montecarlo import Montecarlo
+from montecarlosim.functions import gauss
+
+simulation = Montecarlo(gauss)
+results = simulation.hit_or_miss(-3, 3, 1000)
+Montecarlo.plot(results)
+```
+
+More on Montecarlo class:<br/>
+You can also decide which criteria to use for defining how to read HIT or MISS points (will affect hit_or_miss method only).
+These criteria are defined inside the Criteria enum class inside CriteriaValue class inside Montecarlo class.
+```python
+from montecarlosim.montecarlo import Montecarlo
+
+for criteria in Montecarlo.CriteriaValue.Criteria:
+    print(criteria.value)
+
+# By being an ENUM you can access a single criteria like that
+print(Montecarlo.CriteriaValue.Criteria.MINOR.value)
+```
 
 ## Getting started
 - Clone the repository the way you like;
