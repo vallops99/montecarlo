@@ -69,5 +69,11 @@ class CriteriaError(ValueError):
     def __init__(self, criteria, good_criterias):
         super().__init__(
             f'{criteria} is not a valid criteria, \
-                choose between {", ".join(good_criterias)}'
+                choose between {", ".join([c.value for c in good_criterias])}'
         )
+
+
+class PlotMissingSimulation(ValueError):
+    """Exception raised when calling plot without passin a simulation."""
+    def __init__(self):
+        super().__init__("No simulation has been passed to plot method")

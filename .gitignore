@@ -1,6 +1,9 @@
 .python-version
-__pycache__
-__pycache__/*
+*cache*
 .vscode
 .vscode/*
 .DS_Store
+*egg-info
+htmlcov
+.coverage
+.tox
