@@ -1,5 +1,8 @@
 # MonteCarlo simulation algorithm
 
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Build](https://img.shields.io/badge/Build-Passing-green.svg)]()
+
 ## Installation
 `pip install montecarlosim`
 
